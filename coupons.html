@@ -70,18 +70,12 @@
       }
       createHearts(24);
       function fetchCouponImages() {
-        const path = 'images/coupons/';
-        const exts = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-        return fetch(path)
-          .then((res) => res.text())
-          .then((html) => {
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            let files = Array.from(doc.querySelectorAll('a'))
-              .map((a) => a.getAttribute('href'))
-              .filter((h) => !!h && exts.some((ext) => h.toLowerCase().endsWith(ext)));
-            // Natural sort to keep "Coupon 1.png" ... "Coupon 10.png" order
+        return fetch('images-manifest.json')
+          .then((res) => res.json())
+          .then((manifest) => {
+            const files = Array.isArray(manifest.coupons) ? manifest.coupons.slice() : [];
             files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-            return files.map((f) => `${path}${f}`);
+            return files;
           })
           .catch(() => []);
       }
