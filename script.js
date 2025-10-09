@@ -172,38 +172,20 @@ function initStackGallery() {
 }
 
 function fetchSoloImages() {
-  const path = 'images/us/';
-  const exts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-  return fetch(path)
-    .then((res) => res.text())
-    .then((html) => {
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const anchors = Array.from(doc.querySelectorAll('a'));
-      return anchors
-        .map((a) => a.getAttribute('href'))
-        .filter((h) => !!h && exts.some((ext) => h.toLowerCase().endsWith(ext)))
-        .map((f) => `${path}${f}`);
-    })
+  return fetch('images-manifest.json')
+    .then((res) => res.json())
+    .then((m) => Array.isArray(m.us) ? m.us : [])
     .catch(() => []);
 }
 
 function fetchImagesFromDirectory() {
-  const paths = ['images/', 'images/dashboard/', 'images/solo/', 'images/us/'];
-  const exts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-  const fetchFrom = (path) =>
-    fetch(path)
-      .then((res) => res.text())
-      .then((html) => {
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        const anchors = Array.from(doc.querySelectorAll('a'));
-        const files = anchors
-          .map((a) => a.getAttribute('href'))
-          .filter((h) => !!h && exts.some((ext) => h.toLowerCase().endsWith(ext)))
-          .map((f) => `${path}${f}`);
-        return files;
-      })
-      .catch(() => []);
-  return Promise.all(paths.map(fetchFrom)).then((lists) => lists.flat());
+  return fetch('images-manifest.json')
+    .then((res) => res.json())
+    .then((m) => {
+      const collections = [m.us, m.coupons];
+      return collections.filter(Array.isArray).flat();
+    })
+    .catch(() => []);
 }
 
 function startCrossfade(container, intervalMs) {

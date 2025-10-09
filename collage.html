@@ -43,7 +43,7 @@
         <h1>Photo Collage 🖼️</h1>
         <div class="message-container" aria-label="Collage messages">
           <p>Every moment with you has been surreal; I'll cherish every moment 💚</p>
-          <p>Here's to many more beautiful memories together!</p>
+          <p>These are my favorite photos of you that I captured.</p>
         </div>
       </header>
       <div id="root" aria-live="polite"></div>
@@ -87,20 +87,11 @@
       }
       createHearts();
 
-      // Fetch all images from images/us directory (server must list directory)
-      const exts = ['.jpg','.jpeg','.png','.gif','.webp','.JPG','.JPEG','.PNG'];
+      // Fetch SOLO images from manifest for GitHub/Vercel compatibility
       function fetchUsImages() {
-        const path = 'images/us/';
-        return fetch(path)
-          .then(res => res.text())
-          .then(html => {
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const anchors = Array.from(doc.querySelectorAll('a'));
-            return anchors
-              .map(a => a.getAttribute('href'))
-              .filter(h => !!h && exts.some(ext => h.toLowerCase().endsWith(ext)))
-              .map(f => `${path}${f}`);
-          })
+        return fetch('images-manifest.json')
+          .then(res => res.json())
+          .then(manifest => Array.isArray(manifest.solo) ? manifest.solo : [])
           .catch(() => []);
       }
 
