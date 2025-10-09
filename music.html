@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Player</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&family=Satisfy&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="page-transitions.css" />
+    <style>
+      .music-page { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; }
+      .back-btn { position: absolute; left: 16px; top: 12px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--mint-200); border-radius: 999px; padding: 8px 14px; border: 1px solid rgba(0,0,0,0.06); }
+      .back-btn .arrow { font-size: 18px; line-height: 1; }
+      .back-btn span { font-weight: 600; }
+      .player { width: clamp(280px, 60vw, 560px); background: var(--card); border-radius: 16px; box-shadow: var(--shadow-2); padding: 16px; }
+      .player .top { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; }
+      .cover { width: 96px; height: 96px; border-radius: 12px; background: #e8f7ef; display: grid; place-items: center; overflow: hidden; }
+      .cover img { width: 100%; height: 100%; object-fit: cover; }
+      .track-title { font-weight: 700; color: var(--text); }
+      .track-artist { color: var(--text-soft); font-size: 0.95rem; }
+      .controls { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
+      .btn { background: var(--card); color: var(--text); border-radius: 12px; padding: 8px 12px; box-shadow: var(--shadow); cursor: pointer; }
+      .list { margin-top: 14px; }
+      .list li { padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+      .list li:hover { background: rgba(255,255,255,0.14); }
+    </style>
+  </head>
+  <body class="theme-mint page">
+    <div id="hearts-layer" aria-hidden="true"></div>
+    <main class="music-page">
+      <a class="back-btn" href="home.html" aria-label="Back to Home"><span class="arrow">←</span><span>Back</span></a>
+      <div class="player">
+        <div class="top">
+          <div class="cover"><img src="images/dashboard/music-player.png" alt="Album cover" /></div>
+          <div>
+            <div class="track-title" id="trackTitle">Song 1</div>
+            <div class="track-artist" id="trackArtist">Artist</div>
+          </div>
+        </div>
+        <div class="controls">
+          <button class="btn" id="prevBtn">Prev</button>
+          <button class="btn" id="playBtn">Play</button>
+          <button class="btn" id="nextBtn">Next</button>
+          <span id="status" style="color: var(--text-soft); margin-left: 8px"></span>
+        </div>
+        <ul class="list" id="trackList"></ul>
+        
+      </div>
+    </main>
+    <audio id="audio" preload="none"></audio>
+    <script src="transition.js"></script>
+    <script>
+      function createHearts(count = 16) {
+        const layer = document.getElementById('hearts-layer');
+        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        for (let i = 0; i < count; i++) {
+          const h = document.createElement('div');
+          h.className = 'heart';
+          const size = 16 + Math.random() * 18;
+          h.style.setProperty('--size', `${size}px`);
+          h.style.left = `${Math.random() * vw}px`;
+          h.style.top = `${60 + Math.random() * 30}vh`;
+          h.style.opacity = `${0.55 + Math.random() * 0.35}`;
+          h.style.setProperty('--dur', `${8 + Math.random() * 8}s`);
+          layer.appendChild(h);
+        }
+      }
+      createHearts(20);
+
+      const tracks = [
+        { title: 'Warm Memories', artist: 'Us', url: 'https://cdn.pixabay.com/download/audio/2022/10/13/audio_4a598553a2.mp3?filename=warm-memories-124904.mp3' },
+        { title: 'Sweet Day', artist: 'Us', url: 'https://cdn.pixabay.com/download/audio/2022/03/01/audio_0d9fc92ab0.mp3?filename=sweet-112995.mp3' },
+        { title: 'Heartfelt', artist: 'Us', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_7e8ff0e81a.mp3?filename=heartfelt-115666.mp3' }
+      ];
+
+      const audio = document.getElementById('audio');
+      const titleEl = document.getElementById('trackTitle');
+      const artistEl = document.getElementById('trackArtist');
+      const listEl = document.getElementById('trackList');
+      const playBtn = document.getElementById('playBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const prevBtn = document.getElementById('prevBtn');
+      const statusEl = document.getElementById('status');
+      let index = 0; let playing = false;
+
+      function load(i) {
+        index = i; const t = tracks[index]; audio.src = t.url; titleEl.textContent = t.title; artistEl.textContent = t.artist; highlight(); statusEl.textContent = '';
+      }
+      function highlight() {
+        [...listEl.children].forEach((li, i) => li.style.background = i === index ? 'rgba(255,255,255,0.18)' : 'transparent');
+      }
+      tracks.forEach((t, i) => {
+        const li = document.createElement('li'); li.textContent = `${t.title} – ${t.artist}`; li.addEventListener('click', () => { load(i); play(); }); listEl.appendChild(li);
+      });
+      function play() { audio.play().then(() => { playing = true; playBtn.textContent = 'Pause'; statusEl.textContent = 'Playing'; }).catch(() => { statusEl.textContent = 'Tap to allow audio'; }); }
+      function pause() { audio.pause(); playing = false; playBtn.textContent = 'Play'; statusEl.textContent = 'Paused'; }
+      playBtn.addEventListener('click', () => { playing ? pause() : play(); });
+      nextBtn.addEventListener('click', () => { load((index + 1) % tracks.length); play(); });
+      prevBtn.addEventListener('click', () => { load((index - 1 + tracks.length) % tracks.length); play(); });
+      audio.addEventListener('ended', () => nextBtn.click());
+      load(0);
+    </script>
+  </body>
+  </html>

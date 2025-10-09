@@ -1,0 +1,18 @@
+/* Global page fade-in/out transitions */
+body.page {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+body.page.ready {
+  opacity: 1;
+  transform: none;
+}
+body.page.leaving {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.page { transition: none; opacity: 1; transform: none; }
+}

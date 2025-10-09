@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Birthday Coupons</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&family=Satisfy&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="page-transitions.css" />
+    <style>
+      /* Allow this page to scroll (override global hidden overflow) and hide scrollbar */
+      body.theme-mint.page { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
+      body.theme-mint.page::-webkit-scrollbar { width: 0; height: 0; display: none; }
+      /* Hide the browser/root scrollbar while keeping scroll functional */
+      html { -ms-overflow-style: none; scrollbar-width: none; }
+      html::-webkit-scrollbar { width: 0; height: 0; display: none; }
+      .coupons-page { position: relative; min-height: 100vh; display: grid; grid-template-rows: auto 1fr; padding: 20px; }
+      header { text-align: center; position: relative; }
+      header h1 { font-family: 'Satisfy', cursive; color: var(--text); margin: 0; }
+      header p { color: var(--text-soft); margin-top: 6px; }
+      .back-btn { position: absolute; left: 16px; top: 12px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--mint-200); border-radius: 999px; padding: 8px 14px; border: 1px solid rgba(0,0,0,0.06); }
+      .back-btn .arrow { font-size: 18px; line-height: 1; }
+      .back-btn span { font-weight: 600; }
+      .message-box { background: #fff; color: var(--text); border-radius: 14px; padding: 14px 16px; margin: 12px auto 0; width: min(900px, 92%); border: 2px solid var(--mint-200); box-shadow: 0 2px 8px rgba(0,0,0,0.04); text-align: center; }
+      .message-box p { margin: 6px 0; }
+      /* Lightbox overlay */
+      .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.82); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 24px; }
+      .lightbox.visible { display: flex; }
+      .lightbox img { max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 10px; box-shadow: 0 12px 38px rgba(0,0,0,0.5); }
+      .lightbox .close { position: absolute; top: 16px; right: 16px; font-size: 24px; color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; padding: 6px 10px; cursor: pointer; }
+      .grid { display: grid; gap: clamp(10px, 2vw, 16px); grid-template-columns: repeat(2, 1fr); align-content: start; }
+      .grid img { display: block; width: 80%; margin: 0 auto; height: auto; object-fit: contain; }
+      .actions { margin-top: 16px; text-align: center; }
+      .actions a { display: inline-block; padding: 10px 16px; border-radius: 12px; text-decoration: none; background: var(--card); color: var(--text); box-shadow: var(--shadow); }
+    </style>
+  </head>
+  <body class="theme-mint page">
+    <div id="hearts-layer" aria-hidden="true"></div>
+    <main class="coupons-page">
+      <header>
+        <a class="back-btn" href="home.html" aria-label="Back to Home"><span class="arrow">←</span><span>Back</span></a>
+        <h1>Birthday Coupons 🎁</h1>
+        <div class="message-box"><p>I've prepared 10 coupons for you to redeem 💚</p></div>
+      </header>
+      <section class="grid" id="couponGrid"></section>
+      <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-hidden="true">
+        <button class="close" aria-label="Close">✕</button>
+        <img id="lightboxImg" alt="" src="" />
+      </div>
+      
+    </main>
+    <script src="transition.js"></script>
+    <script>
+      function createHearts(count = 20) {
+        const layer = document.getElementById('hearts-layer');
+        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        for (let i = 0; i < count; i++) {
+          const h = document.createElement('div');
+          h.className = 'heart';
+          const size = 16 + Math.random() * 18;
+          h.style.setProperty('--size', `${size}px`);
+          h.style.left = `${Math.random() * vw}px`;
+          h.style.top = `${60 + Math.random() * 30}vh`;
+          h.style.opacity = `${0.55 + Math.random() * 0.35}`;
+          h.style.setProperty('--dur', `${8 + Math.random() * 8}s`);
+          layer.appendChild(h);
+        }
+      }
+      createHearts(24);
+      function fetchCouponImages() {
+        const path = 'images/coupons/';
+        const exts = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+        return fetch(path)
+          .then((res) => res.text())
+          .then((html) => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            let files = Array.from(doc.querySelectorAll('a'))
+              .map((a) => a.getAttribute('href'))
+              .filter((h) => !!h && exts.some((ext) => h.toLowerCase().endsWith(ext)));
+            // Natural sort to keep "Coupon 1.png" ... "Coupon 10.png" order
+            files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+            return files.map((f) => `${path}${f}`);
+          })
+          .catch(() => []);
+      }
+
+      const grid = document.getElementById('couponGrid');
+      fetchCouponImages().then((urls) => {
+        const shown = urls.slice(0, 10);
+        if (shown.length === 0) {
+          grid.innerHTML = '<div style="color: var(--text-soft);">No coupons found.</div>';
+          return;
+        }
+        shown.forEach((src) => {
+          const img = document.createElement('img');
+          img.src = src;
+          img.alt = 'Birthday coupon';
+          img.loading = 'lazy';
+          img.style.cursor = 'zoom-in';
+          img.addEventListener('click', () => openLightbox(src));
+          grid.appendChild(img);
+        });
+      });
+
+      // Lightbox logic
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+      const closeBtn = lightbox.querySelector('.close');
+
+      function openLightbox(src) {
+        lightboxImg.src = src;
+        lightbox.classList.add('visible');
+        lightbox.setAttribute('aria-hidden', 'false');
+        // Prevent background scroll
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeLightbox() {
+        lightbox.classList.remove('visible');
+        lightbox.setAttribute('aria-hidden', 'true');
+        lightboxImg.src = '';
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+      }
+
+      // Close on backdrop click
+      lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+          closeLightbox();
+        }
+      });
+
+      // Close on button click
+      closeBtn.addEventListener('click', closeLightbox);
+
+      // Close on Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && lightbox.classList.contains('visible')) {
+          closeLightbox();
+        }
+      });
+    </script>
+  </body>
+  </html>

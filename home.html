@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&family=Satisfy&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="page-transitions.css" />
+    <style>
+      /* Allow page to scroll and hide scrollbar visually */
+      html { -ms-overflow-style: none; scrollbar-width: none; }
+      html::-webkit-scrollbar { width: 0; height: 0; display: none; }
+      body.theme-mint.page { overflow-y: auto; }
+
+      .home {
+        position: relative; min-height: 100vh; display: grid; place-items: center; padding: 32px 24px;
+        text-align: center;
+      }
+      .center { width: 100%; max-width: 1400px; }
+      .hero h1 { font-family: 'Satisfy', cursive; font-size: clamp(2rem, 6vw, 3rem); margin: 0; color: var(--text); }
+      .hero p { font-size: clamp(0.95rem, 2.3vw, 1.1rem); margin-top: 8px; color: var(--text-soft); }
+      .menu {
+        width: 100%; margin-top: 24px;
+        display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(18px, 3vw, 28px);
+      }
+      .menu-item { text-decoration: none; color: var(--text); display: grid; justify-items: center; align-content: start; gap: 10px; }
+      .menu-item img {
+        width: clamp(180px, 26vw, 300px); height: auto;
+        /* Keep original colors: no grayscale/hue-rotate/contrast/saturate */
+        filter: drop-shadow(0 12px 22px rgba(0,0,0,0.22));
+        transition: transform 260ms ease, filter 260ms ease;
+      }
+      .menu-item:hover img { transform: translateY(-6px) scale(1.03); filter: drop-shadow(0 18px 30px rgba(0,0,0,0.28)); }
+      .menu-item h3 { margin: 4px 0 2px; font-size: 1rem; }
+      .menu-item p { margin: 0; font-size: 0.9rem; color: var(--text-soft); }
+      /* Hide labels initially; reveal on hover/focus */
+      .menu-item h3, .menu-item p {
+        opacity: 0; transform: translateY(6px);
+        transition: opacity 220ms ease, transform 220ms ease;
+      }
+      .menu-item:hover h3, .menu-item:hover p,
+      .menu-item:focus-visible h3, .menu-item:focus-visible p {
+        opacity: 1; transform: translateY(0);
+      }
+      .footer { margin-top: 18px; color: var(--text-soft); font-size: 0.95rem; }
+      @media (max-width: 980px) { .menu { grid-template-columns: repeat(2, 1fr); } }
+      @media (max-width: 560px) { .menu { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body class="theme-mint page">
+    <div id="hearts-layer" aria-hidden="true"></div>
+    <main class="home">
+      <div class="center">
+        <div class="hero">
+          <h1>Welcome, Angel Baive! 💚</h1>
+          <p>Choose what you'd like to explore</p>
+        </div>
+        <section class="menu">
+          <a class="menu-item" href="collage.html">
+            <img src="images/dashboard/photo-collage.png" alt="Photo Collage" />
+            <h3>Photo Collage</h3>
+            <p>My favorite pictures of you</p>
+          </a>
+          <a class="menu-item" href="letter.html">
+            <img src="images/dashboard/letter.png" alt="Birthday Letter" />
+            <h3>Birthday Letter</h3>
+            <p>A message for you</p>
+          </a>
+          <a class="menu-item" href="music.html">
+            <img src="images/dashboard/music-player.png" alt="Music Player" />
+            <h3>Music Player</h3>
+            <p>A song that reminds me of you</p>
+          </a>
+          <a class="menu-item" href="coupons.html">
+            <img src="images/dashboard/coupon.png" alt="Birthday Coupons" />
+            <h3>Birthday Coupons</h3>
+            <p>Special treats for you</p>
+          </a>
+        </section>
+      </div>
+    </main>
+    <script>
+      // Minimal hearts generator (same as welcome page)
+      function createHearts(count = 20) {
+        const layer = document.getElementById('hearts-layer');
+        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        for (let i = 0; i < count; i++) {
+          const h = document.createElement('div');
+          h.className = 'heart';
+          const size = 16 + Math.random() * 18;
+          h.style.setProperty('--size', `${size}px`);
+          h.style.left = `${Math.random() * vw}px`;
+          h.style.top = `${60 + Math.random() * 30}vh`;
+          h.style.opacity = `${0.55 + Math.random() * 0.35}`;
+          h.style.setProperty('--dur', `${8 + Math.random() * 8}s`);
+          layer.appendChild(h);
+        }
+      }
+      createHearts(24);
+    </script>
+    <script src="transition.js"></script>
+  </body>
+</html>

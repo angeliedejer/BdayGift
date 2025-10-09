@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Photo Collage</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&family=Satisfy&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="page-transitions.css" />
+    <link rel="stylesheet" href="dome-gallery.css" />
+    <style>
+      .collage { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr; }
+      .collage header { text-align: center; padding: 16px 20px; position: relative; }
+      .collage header h1 { font-family: 'Satisfy', cursive; color: var(--text); margin: 0; }
+      .collage header p { color: var(--text-soft); margin-top: 6px; }
+      .back-btn { position: absolute; left: 16px; top: 12px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--mint-200); border-radius: 999px; padding: 8px 14px; border: 1px solid rgba(0,0,0,0.06); }
+      .back-btn .arrow { font-size: 18px; line-height: 1; }
+      .back-btn span { font-weight: 600; }
+      .message-container { max-width: 920px; margin: 10px auto 0; padding: 16px 20px; background: #ffffff; border-radius: 16px; box-shadow: none; border: 1px solid rgba(0,0,0,0.06); }
+      .message-container p { margin: 0; color: var(--text-soft); }
+      .message-container p + p { margin-top: 6px; }
+      #root { width: 100vw; height: 100%; }
+
+      /* Collage-specific: remove gradients and shadows */
+      body.theme-mint.page { background: var(--mint-200) !important; }
+      #hearts-layer .heart { filter: none !important; }
+      .overlay, .overlay--blur { background: none !important; background-image: none !important; -webkit-mask-image: none !important; mask-image: none !important; backdrop-filter: none !important; display: none !important; }
+      .edge-fade { background: none !important; display: none !important; }
+      .viewer .enlarge { box-shadow: none !important; }
+      .viewer .scrim { background: rgba(0, 0, 0, 0.55) !important; backdrop-filter: none !important; }
+    </style>
+  </head>
+  <body class="theme-mint page">
+    <div id="hearts-layer" aria-hidden="true"></div>
+    <main class="collage">
+      <header>
+        <a class="back-btn" href="home.html" aria-label="Back to Home">
+          <span class="arrow">←</span>
+          <span>Back</span>
+        </a>
+        <h1>Photo Collage 🖼️</h1>
+        <div class="message-container" aria-label="Collage messages">
+          <p>Every moment with you has been surreal; I'll cherish every moment 💚</p>
+          <p>Here's to many more beautiful memories together!</p>
+        </div>
+      </header>
+      <div id="root" aria-live="polite"></div>
+    </main>
+    <script src="transition.js"></script>
+    <!-- React and ReactDOM UMD -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone to transpile JSX in-browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Removed external gesture script; using native pointer handlers instead -->
+    <!-- Load and transpile DomeGallery (JSX) on the fly using Babel -->
+    <script type="text/javascript">
+      (async function loadDomeGallery() {
+        try {
+          const res = await fetch('dome-gallery.js');
+          const src = await res.text();
+          const out = Babel.transform(src, { presets: ['react'] }).code;
+          (0, eval)(out);
+        } catch (err) {
+          console.error('Failed to load DomeGallery:', err);
+        }
+      })();
+    </script>
+    <script type="text/babel" data-presets="react">
+      // Decorative hearts layer
+      function createHearts(count = 24) {
+        const layer = document.getElementById('hearts-layer');
+        const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+        for (let i = 0; i < count; i++) {
+          const h = document.createElement('div');
+          h.className = 'heart';
+          const size = 16 + Math.random() * 18;
+          h.style.setProperty('--size', `${size}px`);
+          h.style.left = `${Math.random() * vw}px`;
+          h.style.top = `${60 + Math.random() * 30}vh`;
+          h.style.opacity = `${0.55 + Math.random() * 0.35}`;
+          h.style.setProperty('--dur', `${8 + Math.random() * 8}s`);
+          layer.appendChild(h);
+        }
+      }
+      createHearts();
+
+      // Fetch all images from images/us directory (server must list directory)
+      const exts = ['.jpg','.jpeg','.png','.gif','.webp','.JPG','.JPEG','.PNG'];
+      function fetchUsImages() {
+        const path = 'images/us/';
+        return fetch(path)
+          .then(res => res.text())
+          .then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const anchors = Array.from(doc.querySelectorAll('a'));
+            return anchors
+              .map(a => a.getAttribute('href'))
+              .filter(h => !!h && exts.some(ext => h.toLowerCase().endsWith(ext)))
+              .map(f => `${path}${f}`);
+          })
+          .catch(() => []);
+      }
+
+      function App() {
+        const [images, setImages] = React.useState([]);
+        React.useEffect(() => {
+          fetchUsImages().then(setImages);
+        }, []);
+        return (
+          <div style={{ width: '100vw', height: '100%', overflow: 'hidden' }}>
+            {window.DomeGallery ? (
+              <DomeGallery images={images} grayscale={false} />
+            ) : (
+              <div style={{ color: 'var(--text)', padding: 20 }}>Loading gallery...</div>
+            )}
+          </div>
+        );
+      }
+
+      const root = document.getElementById('root');
+      ReactDOM.createRoot(root).render(<App />);
+    </script>
+  </body>
+  </html>
