@@ -13,7 +13,7 @@
     <link rel="apple-touch-icon" href="images/logo/bday logo.png" />
     <link rel="shortcut icon" href="images/logo/bday logo.png" type="image/png" />
     <style>
-      .music-page { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; }
+      .music-page { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(280px, 520px) minmax(280px, 520px); align-items: center; justify-content: center; gap: 36px; padding: 24px; }
       .back-btn { position: absolute; left: 16px; top: 12px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--mint-200); border-radius: 999px; padding: 8px 14px; border: 1px solid rgba(0,0,0,0.06); }
       .back-btn .arrow { font-size: 18px; line-height: 1; }
       .back-btn span { font-weight: 600; }
@@ -28,29 +28,45 @@
       .list { margin-top: 14px; }
       .list li { padding: 6px 8px; border-radius: 8px; cursor: pointer; }
       .list li:hover { background: rgba(255,255,255,0.14); }
+      /* Vinyl + Playlist layout */
+      .vinyl-wrap { width: clamp(280px, 42vw, 520px); aspect-ratio: 1/1; display: grid; place-items: center; background: rgba(255,255,255,0.22); border: 1px solid var(--glass-border); backdrop-filter: blur(10px) saturate(1.05); border-radius: 22px; box-shadow: 0 12px 32px var(--shadow); }
+      .vinyl { width: 78%; height: auto; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.25)); animation: spin 3.6s linear infinite; animation-play-state: paused; will-change: transform; }
+      .vinyl.spinning { animation-play-state: running; }
+      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      .playlist { width: clamp(280px, 42vw, 520px); background: var(--glass); border: 1px solid var(--glass-border); border-radius: 22px; box-shadow: 0 12px 32px var(--shadow); padding: 22px; }
+      .playlist h2 { margin: 0 0 10px; font-family: 'Satisfy', cursive; color: var(--text); text-align: center; }
+      .controls { display: flex; gap: 10px; align-items: center; justify-content: center; margin: 12px 0 6px; }
+      .btn { background: rgba(255,255,255,0.45); color: var(--text); border-radius: 12px; padding: 8px 12px; border: 1px solid rgba(23, 59, 42, 0.18); box-shadow: 0 10px 20px rgba(126,199,155,0.25); cursor: pointer; font-weight: 700; }
+      .btn.icon { width: 44px; height: 44px; padding: 0; display: inline-grid; place-items: center; }
+      .btn svg { width: 22px; height: 22px; color: var(--text); }
+      .list { list-style: none; padding: 0; margin: 12px 0 0; }
+      .list li { padding: 10px 12px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+      .list li:hover { background: rgba(255,255,255,0.18); }
+      .current { background: rgba(255,255,255,0.22); }
+      .explanation { margin-top: 14px; color: var(--text); line-height: 1.6; background: rgba(255,255,255,0.18); border: 1px solid var(--glass-border); border-radius: 14px; padding: 12px 14px; }
+      .explanation h3 { margin: 0 0 8px; font-size: 1.05rem; }
+      .status { color: var(--text-soft); text-align: center; margin-top: 6px; }
+      @media (max-width: 860px) { .music-page { grid-template-columns: 1fr; gap: 20px; } .vinyl-wrap, .playlist { width: clamp(280px, 85vw, 520px); } }
     </style>
   </head>
   <body class="theme-mint page">
     <div id="hearts-layer" aria-hidden="true"></div>
     <main class="music-page">
       <a class="back-btn" href="home.html" aria-label="Back to Home"><span class="arrow">←</span><span>Back</span></a>
-      <div class="player">
-        <div class="top">
-          <div class="cover"><img src="images/dashboard/music-player.png" alt="Album cover" /></div>
-          <div>
-            <div class="track-title" id="trackTitle">Song 1</div>
-            <div class="track-artist" id="trackArtist">Artist</div>
-          </div>
-        </div>
+      <section class="vinyl-wrap">
+        <img id="vinyl" class="vinyl" src="images/vinyl-record.png" alt="Spinning vinyl record" />
+      </section>
+      <section class="playlist">
+        <h2>Our Songs</h2>
         <div class="controls">
-          <button class="btn" id="prevBtn">Prev</button>
-          <button class="btn" id="playBtn">Play</button>
-          <button class="btn" id="nextBtn">Next</button>
-          <span id="status" style="color: var(--text-soft); margin-left: 8px"></span>
+          <button class="btn icon" id="prevBtn" aria-label="Previous" title="Previous"></button>
+          <button class="btn icon" id="playBtn" aria-label="Play/Pause" title="Play/Pause"></button>
+          <button class="btn icon" id="nextBtn" aria-label="Next" title="Next"></button>
         </div>
         <ul class="list" id="trackList"></ul>
-        
-      </div>
+        <div class="explanation" id="explanation" aria-live="polite"></div>
+        <div class="status" id="status"></div>
+      </section>
     </main>
     <audio id="audio" preload="none"></audio>
     <script src="transition.js"></script>
@@ -73,12 +89,13 @@
       createHearts(20);
 
       const tracks = [
-        { title: 'Warm Memories', artist: 'Us', url: 'https://cdn.pixabay.com/download/audio/2022/10/13/audio_4a598553a2.mp3?filename=warm-memories-124904.mp3' },
-        { title: 'Sweet Day', artist: 'Us', url: 'https://cdn.pixabay.com/download/audio/2022/03/01/audio_0d9fc92ab0.mp3?filename=sweet-112995.mp3' },
-        { title: 'Heartfelt', artist: 'Us', url: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_7e8ff0e81a.mp3?filename=heartfelt-115666.mp3' }
+        { title: 'Make It With You', artist: 'Bread', url: 'audio/Make It With You.mp3' },
+        { title: 'Grow Old With You', artist: 'Adam Sandler', url: 'audio/Grow Old With You - Adam Sandler.mp3' },
+        { title: 'Paninindigan Kita', artist: 'Ben&Ben', url: 'audio/Ben&Ben - Paninindigan Kita _ Official Lyric Video.mp3' }
       ];
 
       const audio = document.getElementById('audio');
+      const vinyl = document.getElementById('vinyl');
       const titleEl = document.getElementById('trackTitle');
       const artistEl = document.getElementById('trackArtist');
       const listEl = document.getElementById('trackList');
@@ -86,23 +103,55 @@
       const nextBtn = document.getElementById('nextBtn');
       const prevBtn = document.getElementById('prevBtn');
       const statusEl = document.getElementById('status');
+      const explanationEl = document.getElementById('explanation');
       let index = 0; let playing = false;
 
+      const explanations = {
+        'Make It With You': `
+          <h3>🎵 Make It With You</h3>
+          <p>This song reminds me of how much I want to build something real and lasting with you. 💚</p>
+          <p>It’s about finding that one person you can dream, grow, and face life with, and for me, that’s you. Every lyric feels like a quiet promise that no matter where life takes us, I want to make it through everything with you.</p>
+        `,
+        'Grow Old With You': `
+          <h3>🎵 Grow Old With You</h3>
+          <p>Simple, sweet, and full of love, just like us. 🥰</p>
+          <p>This song captures what love truly means to me: being there through the ordinary days, taking care of each other, and growing together as time goes on. It’s a song that makes me smile because it paints a picture of a future I’d love to share with you, one full of laughter, warmth, and growing old side by side.</p>
+        `,
+        'Paninindigan Kita': `
+          <h3>🎵 Paninindigan Kita</h3>
+          <p>This one feels so us, honest, heartfelt, and full of commitment. 💞</p>
+          <p>This song is about standing by the person you love no matter what. It’s a declaration of love that’s strong, steady, and true. This song reminds me of how I feel about you, that no matter what happens, I’ll choose you and stand by you, always.</p>
+        `
+      };
+
+      // Icon render helpers
+      const icons = {
+        play: () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>',
+        pause: () => '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" fill="currentColor"/><rect x="14" y="5" width="4" height="14" fill="currentColor"/></svg>',
+        next: () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 6v12l8-6z"/><rect x="17" y="6" width="2" height="12" fill="currentColor"/></svg>',
+        prev: () => '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19 6v12l-8-6z"/><rect x="5" y="6" width="2" height="12" fill="currentColor"/></svg>'
+      };
+      prevBtn.innerHTML = icons.prev();
+      nextBtn.innerHTML = icons.next();
+      playBtn.innerHTML = icons.play();
+
       function load(i) {
-        index = i; const t = tracks[index]; audio.src = t.url; titleEl.textContent = t.title; artistEl.textContent = t.artist; highlight(); statusEl.textContent = '';
+        index = i; const t = tracks[index]; audio.src = t.url; if (titleEl) titleEl.textContent = t.title; if (artistEl) artistEl.textContent = t.artist; highlight(); statusEl.textContent = `${t.title} — ready`;
       }
       function highlight() {
-        [...listEl.children].forEach((li, i) => li.style.background = i === index ? 'rgba(255,255,255,0.18)' : 'transparent');
+        [...listEl.children].forEach((li, i) => li.classList.toggle('current', i === index));
       }
       tracks.forEach((t, i) => {
-        const li = document.createElement('li'); li.textContent = `${t.title} – ${t.artist}`; li.addEventListener('click', () => { load(i); play(); }); listEl.appendChild(li);
+        const li = document.createElement('li'); li.textContent = `${t.title}`; li.addEventListener('click', () => { load(i); play(); }); listEl.appendChild(li);
       });
-      function play() { audio.play().then(() => { playing = true; playBtn.textContent = 'Pause'; statusEl.textContent = 'Playing'; }).catch(() => { statusEl.textContent = 'Tap to allow audio'; }); }
-      function pause() { audio.pause(); playing = false; playBtn.textContent = 'Play'; statusEl.textContent = 'Paused'; }
+      function play() { audio.play().then(() => { playing = true; playBtn.innerHTML = icons.pause(); statusEl.textContent = 'Playing'; vinyl.classList.add('spinning'); }).catch(() => { statusEl.textContent = 'Tap to allow audio'; }); }
+      function pause() { audio.pause(); playing = false; playBtn.innerHTML = icons.play(); statusEl.textContent = 'Paused'; vinyl.classList.remove('spinning'); }
       playBtn.addEventListener('click', () => { playing ? pause() : play(); });
       nextBtn.addEventListener('click', () => { load((index + 1) % tracks.length); play(); });
       prevBtn.addEventListener('click', () => { load((index - 1 + tracks.length) % tracks.length); play(); });
-      audio.addEventListener('ended', () => nextBtn.click());
+      audio.addEventListener('play', () => { vinyl.classList.add('spinning'); const t = tracks[index]; explanationEl.innerHTML = explanations[t.title] || ''; });
+      audio.addEventListener('pause', () => { vinyl.classList.remove('spinning'); explanationEl.innerHTML = ''; });
+      audio.addEventListener('ended', () => { vinyl.classList.remove('spinning'); nextBtn.click(); });
       load(0);
     </script>
   </body>

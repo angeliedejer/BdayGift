@@ -171,8 +171,9 @@ body.theme-mint {
   justify-content: center;
   gap: 36px;
   padding: 24px;
-  /* Enable scrolling inside the fixed container */
-  overflow: auto;
+  /* Enable vertical scroll only; prevent horizontal scroll */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Intro header above columns */
