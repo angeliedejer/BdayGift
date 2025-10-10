@@ -9,19 +9,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700&family=Satisfy&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="page-transitions.css" />
-    <link rel="stylesheet" href="dome-gallery.css" />
     <link rel="icon" href="images/logo/bday logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="images/logo/bday logo.png" />
     <link rel="shortcut icon" href="images/logo/bday logo.png" type="image/png" />
     <style>
+      /* Interactive click-to-reveal canvas */
+      .canvas { position: relative; width: 100%; min-height: 100vh; padding: 16px 20px 140px; cursor: crosshair; overflow: visible; }
+      .spawn { position: fixed; left: 0; top: 0; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)); width: var(--w, 240px); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.22); transition: transform 220ms ease, box-shadow 220ms ease; background: #1115; will-change: transform; }
+      .spawn:hover { transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) scale(1.03); box-shadow: 0 18px 44px rgba(0,0,0,0.28); }
+
+      /* Lightbox overlay */
+      .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.82); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 24px; }
+      .lightbox.visible { display: flex; }
+      .lightbox img { max-width: 92vw; max-height: 92vh; object-fit: contain; border-radius: 10px; box-shadow: 0 12px 38px rgba(0,0,0,0.5); }
+      .lightbox .close { position: absolute; top: 16px; right: 16px; font-size: 24px; color: #fff; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); border-radius: 999px; padding: 6px 10px; cursor: pointer; }
       .collage { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr; }
-      .collage header { text-align: center; padding: 16px 20px; position: relative; }
-      .collage header h1 { font-family: 'Satisfy', cursive; color: var(--text); margin: 0; }
-      .collage header p { color: var(--text-soft); margin-top: 6px; }
+      .collage-page header { text-align: center; padding: 16px 20px; position: relative; }
+      .collage-page header h1 { font-family: 'Satisfy', cursive; color: var(--text); margin: 0; }
+      .collage-page header p { color: var(--text-soft); margin-top: 6px; }
       .back-btn { position: absolute; left: 16px; top: 12px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--mint-200); border-radius: 999px; padding: 8px 14px; border: 1px solid rgba(0,0,0,0.06); }
       .back-btn .arrow { font-size: 18px; line-height: 1; }
       .back-btn span { font-weight: 600; }
-      .message-container { max-width: 920px; margin: 10px auto 0; padding: 16px 20px; background: #ffffff; border-radius: 16px; box-shadow: none; border: 1px solid rgba(0,0,0,0.06); }
+      .message-container { max-width: 920px; margin: 10px auto 0; padding: 16px 20px; background: #ffffff; border-radius: 16px; box-shadow: none; border: 1px solid rgba(0,0,0,0.06); text-align: center; }
       .message-container p { margin: 0; color: var(--text-soft); }
       .message-container p + p { margin-top: 6px; }
       #root { width: 100vw; height: 100%; }
@@ -37,7 +46,7 @@
   </head>
   <body class="theme-mint page">
     <div id="hearts-layer" aria-hidden="true"></div>
-    <main class="collage">
+    <main class="collage-page">
       <header>
         <a class="back-btn" href="home.html" aria-label="Back to Home">
           <span class="arrow">←</span>
@@ -49,29 +58,14 @@
           <p>These are my favorite photos of you that I captured.</p>
         </div>
       </header>
-      <div id="root" aria-live="polite"></div>
+      <section id="canvas" class="canvas" aria-live="polite" title="Click anywhere to reveal a photo"></section>
+      <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-hidden="true">
+        <button class="close" aria-label="Close">✕</button>
+        <img id="lightboxImg" alt="" src="" />
+      </div>
     </main>
     <script src="transition.js"></script>
-    <!-- React and ReactDOM UMD -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel Standalone to transpile JSX in-browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Removed external gesture script; using native pointer handlers instead -->
-    <!-- Load and transpile DomeGallery (JSX) on the fly using Babel -->
-    <script type="text/javascript">
-      (async function loadDomeGallery() {
-        try {
-          const res = await fetch('dome-gallery.js');
-          const src = await res.text();
-          const out = Babel.transform(src, { presets: ['react'] }).code;
-          (0, eval)(out);
-        } catch (err) {
-          console.error('Failed to load DomeGallery:', err);
-        }
-      })();
-    </script>
-    <script type="text/babel" data-presets="react">
+    <script>
       // Decorative hearts layer
       function createHearts(count = 24) {
         const layer = document.getElementById('hearts-layer');
@@ -90,32 +84,120 @@
       }
       createHearts();
 
-      // Fetch SOLO images from manifest for GitHub/Vercel compatibility
-      function fetchUsImages() {
+      // Lightbox logic
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImg = document.getElementById('lightboxImg');
+      const closeBtn = lightbox.querySelector('.close');
+      function openLightbox(src) {
+        lightboxImg.src = src;
+        lightbox.classList.add('visible');
+        lightbox.setAttribute('aria-hidden', 'false');
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLightbox() {
+        lightbox.classList.remove('visible');
+        lightbox.setAttribute('aria-hidden', 'true');
+        lightboxImg.src = '';
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+      }
+      lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+      closeBtn.addEventListener('click', closeLightbox);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && lightbox.classList.contains('visible')) closeLightbox(); });
+
+      // Click-to-reveal canvas
+      const canvas = document.getElementById('canvas');
+      let revealIndex = 0;
+      let zIndexBase = 10;
+      let urlsGlobal = [];
+
+      function fetchSoloImages() {
         return fetch('images-manifest.json')
           .then(res => res.json())
           .then(manifest => Array.isArray(manifest.solo) ? manifest.solo : [])
           .catch(() => []);
       }
 
-      function App() {
-        const [images, setImages] = React.useState([]);
-        React.useEffect(() => {
-          fetchUsImages().then(setImages);
-        }, []);
-        return (
-          <div style={{ width: '100vw', height: '100%', overflow: 'hidden' }}>
-            {window.DomeGallery ? (
-              <DomeGallery images={images} grayscale={false} />
-            ) : (
-              <div style={{ color: 'var(--text)', padding: 20 }}>Loading gallery...</div>
-            )}
-          </div>
-        );
+      function nextUrl(urls) {
+        if (!urls.length) return null;
+        const url = urls[revealIndex % urls.length];
+        revealIndex += 1;
+        return url;
       }
 
-      const root = document.getElementById('root');
-      ReactDOM.createRoot(root).render(<App />);
+      function spawnImageAt(container, url, x, y) {
+        const img = new Image();
+        img.className = 'spawn';
+        img.src = url;
+        img.alt = 'Collage photo';
+
+        const w = 170 + Math.random() * 210; // 170–380px
+        const rot = (Math.random() * 12 - 6).toFixed(2) + 'deg';
+        img.style.setProperty('--w', w + 'px');
+        img.style.setProperty('--rot', rot);
+        img.style.zIndex = String(++zIndexBase);
+
+        // Place initially; will clamp after load when we know height
+        img.style.left = x + 'px';
+        img.style.top = y + 'px';
+
+        img.onload = () => {
+          const ratio = (img.naturalHeight && img.naturalWidth) ? img.naturalHeight / img.naturalWidth : 0.66;
+          const h = w * ratio;
+          const pad = 8;
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          const minX = w / 2 + pad;
+          const maxX = Math.max(minX, vw - w / 2 - pad);
+          const minY = h / 2 + pad;
+          const maxY = Math.max(minY, vh - h / 2 - pad);
+          const cx = Math.min(Math.max(minX, x), maxX);
+          const cy = Math.min(Math.max(minY, y), maxY);
+          img.style.left = cx + 'px';
+          img.style.top = cy + 'px';
+        };
+
+        img.addEventListener('click', (ev) => {
+          // Bring to front and also spawn a new image at the click point
+          ev.stopPropagation();
+          img.style.zIndex = String(++zIndexBase);
+          const next = nextUrl(urlsGlobal);
+          if (next) spawnImageAt(container, next, ev.clientX, ev.clientY);
+        });
+
+        // Append to body so it can appear anywhere on screen
+        document.body.appendChild(img);
+      }
+
+      fetchSoloImages().then((urls) => {
+        urlsGlobal = urls;
+        if (!urls || urls.length === 0) return;
+
+        // Prefetch a few for snappier first clicks
+        urls.slice(0, 4).forEach(u => { const pre = new Image(); pre.src = u; });
+
+        function handleClick(e) {
+          // Ignore clicks on interactive elements
+          if (e.target.closest('#lightbox, .back-btn, a, button')) return;
+          const x = e.clientX;
+          const y = e.clientY;
+          const url = nextUrl(urls);
+          if (url) spawnImageAt(canvas, url, x, y);
+        }
+
+        function handleTouch(e) {
+          const t = e.touches[0];
+          const x = t.clientX;
+          const y = t.clientY;
+          const url = nextUrl(urls);
+          if (url) spawnImageAt(canvas, url, x, y);
+        }
+
+        // Listen on the whole document to allow clicks anywhere
+        document.addEventListener('click', handleClick);
+        document.addEventListener('touchstart', handleTouch, { passive: true });
+      });
     </script>
   </body>
   </html>
